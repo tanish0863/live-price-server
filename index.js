@@ -1,36 +1,30 @@
-const express = require("express");
-const cors = require("cors");
-const app = express();
-const PORT = process.env.PORT || 3000;
+ import express from "express";
+import cors from "cors";
+import yahooFinance from "yahoo-finance2";
 
+const app = express();
 app.use(cors());
 
-// Store prices for each stock
-let stockPrices = {};
+app.get("/price", async (req, res) => {
+    const stock = req.query.stock;
 
-function getRandomPriceChange() {
-  return Math.floor(Math.random() * 100) - 50; // -50 to +50
-}
+    if (!stock) return res.status(400).json({ error: "Stock name required" });
 
-// Every 2 sec: update all prices
-setInterval(() => {
-  for (let stock in stockPrices) {
-    stockPrices[stock] += getRandomPriceChange();
-    if (stockPrices[stock] < 1) stockPrices[stock] = 1; // minimum 1
-  }
-}, 2000);
-
-app.get("/price", (req, res) => {
-  const stock = (req.query.stock || "DEFAULT").toUpperCase();
-
-  // Initialize price if not present
-  if (!stockPrices[stock]) {
-    stockPrices[stock] = Math.floor(Math.random() * 2000) + 100; // Random start price
-  }
-
-  res.json({ stock, price: stockPrices[stock] });
+    try {
+        const result = await yahooFinance.quote(stock);
+        const price = result.regularMarketPrice;
+        res.json({ stock, price });
+    } catch (error) {
+        console.error("Yahoo error:", error.message);
+        res.status(500).json({ error: "Failed to fetch price" });
+    }
 });
 
+app.get("/", (req, res) => {
+    res.send("Live price server is running");
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+    console.log(`✅ Server running on port ${PORT}`);
 });
