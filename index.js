@@ -5,15 +5,30 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
-let price = 25000;
+// Store prices for each stock
+let stockPrices = {};
 
+function getRandomPriceChange() {
+  return Math.floor(Math.random() * 100) - 50; // -50 to +50
+}
+
+// Every 2 sec: update all prices
 setInterval(() => {
-  const change = Math.floor(Math.random() * 200) - 100;
-  price = Math.max(1, price + change);
+  for (let stock in stockPrices) {
+    stockPrices[stock] += getRandomPriceChange();
+    if (stockPrices[stock] < 1) stockPrices[stock] = 1; // minimum 1
+  }
 }, 2000);
 
 app.get("/price", (req, res) => {
-  res.json({ price });
+  const stock = (req.query.stock || "DEFAULT").toUpperCase();
+
+  // Initialize price if not present
+  if (!stockPrices[stock]) {
+    stockPrices[stock] = Math.floor(Math.random() * 2000) + 100; // Random start price
+  }
+
+  res.json({ stock, price: stockPrices[stock] });
 });
 
 app.listen(PORT, () => {
